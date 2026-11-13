@@ -1,0 +1,207 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #101418;
+  color: #f1f5f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  flex-wrap: wrap;
+}
+
+h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 auto 0 0;
+}
+
+button,
+select {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.primary {
+  background: #2a9d8f;
+  border-color: #2a9d8f;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 0.6rem 2rem;
+}
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1rem;
+  padding: 0 1rem 1rem;
+  align-items: start;
+}
+
+.stage {
+  position: relative;
+  background: #000;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.stage video,
+.stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Sized to be read from 2.5 m. */
+.readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.state {
+  font-size: clamp(2.5rem, 5.5vw, 6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  padding: 0.2em 0.5em;
+  border-radius: 0.3em;
+  width: 100%;
+}
+
+.state.idle { background: #334155; }
+.state.calibrating { background: #b45309; }
+.state.active { background: #2a9d8f; }
+.state.lost { background: #b91c1c; }
+.state.error { background: #7f1d1d; font-size: 1.6rem; }
+
+.detail {
+  font-size: clamp(1.2rem, 2vw, 2rem);
+  min-height: 2.5em;
+  color: #cbd5e1;
+}
+
+.numbers {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-around;
+  width: 100%;
+  gap: 1rem;
+}
+
+.angle,
+.reps {
+  font-size: clamp(5rem, 11vw, 13rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.angle {
+  color: #ffd166;
+}
+
+.angle.over {
+  color: #ff6b6b;
+}
+
+.reps small {
+  font-size: 0.2em;
+  font-weight: 600;
+  margin-left: 0.3em;
+  color: #94a3b8;
+}
+
+.gauge {
+  width: 100%;
+  max-height: 36vh;
+  object-fit: contain;
+}
+
+.said {
+  font-size: clamp(1.2rem, 2vw, 2rem);
+  min-height: 1.5em;
+  color: #ffd166;
+}
+
+#debug {
+  border-top: 1px solid #334155;
+  padding: 0.75rem 1rem 1.5rem;
+  font-size: 0.9rem;
+}
+
+#debug .controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+#debug select,
+#debug button {
+  padding: 0.3rem 0.6rem;
+}
+
+#debug .tables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+#debug table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+#debug td {
+  padding: 0.1rem 0.75rem 0.1rem 0;
+}
+
+#debug td:last-child {
+  font-family: ui-monospace, monospace;
+}
+
+#debug pre {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 800px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+}
