@@ -1,7 +1,7 @@
 # Side-lying hip abduction coach
 
-A browser prototype that watches you through the laptop webcam while you do side-lying hip abductions,
-counts clean reps aloud and speaks a cue when your form drops.
+A browser prototype that watches you through the laptop webcam while you do side-lying hip abductions
+and speaks a cue when your form drops.
 Everything runs on the device: pose estimation is MediaPipe Pose Landmarker in WebAssembly,
 speech is the browser's own `speechSynthesis`, and no request leaves the page's origin at runtime.
 
@@ -17,6 +17,22 @@ It has not yet been checked against a real person lying down, so treat every cue
   The app works out which leg is on top, records your resting position, and says "Ready. Begin."
 - If it loses you for three seconds it says "I can't see you." and recalibrates when you are back.
   The **Recalibrate** button does the same on demand.
+- The screen shows the session state and the current abduction as a ring with the 30° limit marked.
+  Nothing is said while your form is good.
+
+## Voice
+
+Speech uses the voices your browser and operating system provide, so how good it sounds depends on what is installed.
+The app picks the best English voice that runs on the device, preferring the natural-sounding ones and avoiding the robotic ones,
+and speaks a little slower than the default.
+**Settings → Voice** lists every English voice, with a **Test** button, and remembers your choice in the browser.
+
+- On macOS, download an Enhanced or Premium voice under System Settings → Accessibility → Spoken Content → System Voice → Manage Voices.
+  It appears in Safari; Chrome may only list the standard voices, of which Samantha is the usual best.
+- On Windows, add voices under Settings → Time & language → Speech.
+- Voices marked **(online)**, such as Chrome's Google voices and Edge's Natural voices, usually sound best,
+  but the browser sends each spoken phrase to the voice's provider.
+  They are never picked automatically, since everything else in the app stays on the device.
 
 ## Running it
 
@@ -48,7 +64,7 @@ Other commands:
 ## What it measures
 
 - **abduction**: angle in the image between the trunk line (mid-shoulder to mid-hip) and the top thigh, positive towards the ceiling.
-  Reps and the "too high" cue use it.
+  Rep detection and the "too high" cue use it.
 - **abductionPelvis**: the same thigh against the perpendicular of the hip-to-hip line. Debug only.
 - **flexDrift**: how far the top thigh has moved forward of the body since calibration, from the 3D world landmarks.
 - **pelvisRoll**: how far the top hip has rolled back, away from the camera, since calibration. **trunkRoll** is the same for the shoulders, debug only.
@@ -63,12 +79,12 @@ Cues, in priority order:
 
 One cue is spoken at a time and nothing is queued.
 Each cue fires at most once per rep and at most every 4 s, and two different cues are at least 2 s apart.
-A rep that drew a cue gets no number, and the count shown is the count of clean reps.
+Reps are detected only to scope the cues, as each fires at most once per rep. They are not counted or announced.
 Every number and phrase is in [`src/pipeline/config.ts`](src/pipeline/config.ts).
 
-## Debug panel
+## Settings and debug panel
 
-Tick **Debug** to see live values of every measurement, landmark visibility, FPS, the detected top side,
+Open **Settings** to see live values of every measurement, landmark visibility, FPS, the detected top side,
 and whether the anterior axis `A` points towards the camera, which it should while you face it.
 The panel also has:
 
@@ -80,12 +96,12 @@ The panel also has:
 
 ## Recording and exporting a trace
 
-1. Tick **Debug** and press **Record trace**, before or after Start.
+1. Open **Settings** and press **Record**, before or after Start.
 2. Do your set.
-3. Press **Stop recording**, then **Download trace**.
+3. Press **Stop**, then **Download**.
 
 The download is a JSON file with, per frame, the timestamp, the 33 image landmarks, the 33 world landmarks,
-the measurements, the session state and any events such as cues and reps, plus the config in use.
+the measurements, the session state and any events such as cues and rep boundaries, plus the config in use.
 No video is saved.
 A trace runs to roughly 4 MB per minute and is held in memory until downloaded.
 
@@ -120,9 +136,9 @@ which is how thresholds are meant to be tuned.
 - The "too high" limit is an absolute angle to the trunk line, so a trunk that side-bends changes it.
 - Calibration needs both ankles visible and the top hip and top ankle both above the bottom ones.
   It also needs the trunk within 30° of horizontal in the picture, so it does not calibrate on you sitting up.
-- A cue is suppressed inside its 4 s cooldown, so a fast faulty rep right after a cued one can be counted as clean.
+- A cue is suppressed inside its 4 s cooldown, so a fast faulty rep right after a cued one can pass without a cue.
 - Foot, toe and thigh rotation are not tracked.
-- Speech depends on the browser's voices. Chromium is the tested browser.
+- Speech quality depends on the voices installed, see Voice above. Chromium is the tested browser, and no voice has been listened to.
 
 ## Deployment
 

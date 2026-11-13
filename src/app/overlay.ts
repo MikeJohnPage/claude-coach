@@ -37,7 +37,7 @@ export function drawOverlay(canvas: HTMLCanvasElement, frame: PoseFrame, top: Si
     const p = point(a);
     const q = point(b);
     const seen = Math.min(p.v, q.v) >= config.minVisibility;
-    line(p, q, seen ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.25)", unit);
+    line(p, q, seen ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.2)", unit * 0.7);
   }
   if (top) {
     const l = config.landmarks;
@@ -46,14 +46,14 @@ export function drawOverlay(canvas: HTMLCanvasElement, frame: PoseFrame, top: Si
       x: (point(i).x + point(j).x) / 2,
       y: (point(i).y + point(j).y) / 2,
     });
-    line(mid(l.leftShoulder, l.rightShoulder), mid(l.leftHip, l.rightHip), "#4cc9f0", unit * 1.6);
-    line(point(t.hip), point(t.knee), "#ffd166", unit * 1.6);
+    line(mid(l.leftShoulder, l.rightShoulder), mid(l.leftHip, l.rightHip), "#ffffff", unit * 1.2);
+    line(point(t.hip), point(t.knee), "#8fd3c4", unit * 1.4);
   }
   for (const i of Object.values(config.landmarks)) {
     const p = point(i);
-    ctx.fillStyle = p.v >= config.minVisibility ? "#06d6a0" : "#ef476f";
+    ctx.fillStyle = p.v >= config.minVisibility ? "#ffffff" : "#f2a391";
     ctx.beginPath();
-    ctx.arc(p.x, p.y, unit * 1.5, 0, 2 * Math.PI);
+    ctx.arc(p.x, p.y, unit * 1.1, 0, 2 * Math.PI);
     ctx.fill();
   }
 }

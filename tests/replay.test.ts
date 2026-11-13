@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/pipeline/config";
 import { CoachSession } from "../src/pipeline/session";
 import { encodeFrame, replay, TRACE_VERSION, type Trace } from "../src/pipeline/trace";
-import { cueIds, lift, sequence, spoken } from "./helpers";
+import { cueIds, lift, reps, sequence, spoken } from "./helpers";
 
 function recordTrace(): { trace: Trace; liveEvents: ReturnType<CoachSession["process"]>["events"] } {
   const frames = sequence("right", 7000, (t) => ({ abduction: Math.max(lift(t, 500, 2500, 25), lift(t, 3500, 2500, 42)) }));
@@ -29,7 +29,8 @@ describe("trace replay", () => {
     const loaded = JSON.parse(readFileSync(file, "utf8")) as Trace;
     const { outputs, events } = replay(loaded);
     expect(outputs).toHaveLength(trace.frames.length);
-    expect(spoken(events)).toEqual(["Ready. Begin.", "1", "Too high. Lower a little."]);
+    expect(spoken(events)).toEqual(["Ready. Begin.", "Too high. Lower a little."]);
+    expect(reps(events)).toEqual([true, false]);
     expect(events.map((e) => [e.type, e.t])).toEqual(liveEvents.map((e) => [e.type, Math.round(e.t * 100) / 100]));
     // Replayed measurements match the recorded ones up to the rounding of stored landmarks.
     const last = loaded.frames.at(-1)!;
@@ -45,7 +46,7 @@ describe("trace replay", () => {
     // The second starts inside the cue's cooldown, so it passes without a second cue.
     const { events } = replay(trace, strict);
     expect(cueIds(events)).toEqual(["tooHigh"]);
-    expect(spoken(events)).toEqual(["Ready. Begin.", "Too high. Lower a little.", "1"]);
+    expect(reps(events)).toEqual([false, true]);
   });
 
   it("rejects an unknown trace version", () => {

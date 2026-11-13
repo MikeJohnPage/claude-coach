@@ -15,14 +15,18 @@ const video = $<HTMLVideoElement>("video");
 const overlay = $<HTMLCanvasElement>("overlay");
 const gauge = $<HTMLCanvasElement>("gauge");
 const startButton = $<HTMLButtonElement>("start");
+const restartButton = $<HTMLButtonElement>("restart");
+const intro = $("intro");
 const recalibrateButton = $<HTMLButtonElement>("recalibrate");
 const stateEl = $("state");
 const detailEl = $("detail");
 const angleEl = $("angle");
-const repsEl = $("reps");
 const saidEl = $("said");
-const debugToggle = $<HTMLInputElement>("debug-toggle");
-const debugPanel = $("debug");
+const settingsToggle = $<HTMLButtonElement>("settings-toggle");
+const settingsClose = $<HTMLButtonElement>("settings-close");
+const debugPanel = $("settings");
+const voiceSelect = $<HTMLSelectElement>("voice");
+const voiceTest = $<HTMLButtonElement>("voice-test");
 const variantSelect = $<HTMLSelectElement>("variant");
 const sourceSelect = $<HTMLSelectElement>("source");
 const fileInput = $<HTMLInputElement>("file");
@@ -59,9 +63,10 @@ const status = { modelReady: false, delegate: "", frames: 0, state: "idle", said
 (window as unknown as { __coach: typeof status }).__coach = status;
 
 const STATE_LABEL: Record<SessionState, string> = { calibrating: "Hold still", active: "Go", lost: "Can't see you" };
+const AUTO_VOICE = "";
 
 function showState(kind: SessionState | "idle" | "error", label: string, detail: string): void {
-  stateEl.className = `state ${kind}`;
+  document.body.dataset.state = kind;
   stateEl.textContent = label;
   detailEl.textContent = detail;
   status.state = kind;
@@ -73,13 +78,11 @@ function showError(message: string, error: unknown): void {
   showState("error", message, error instanceof Error ? error.message : String(error));
 }
 
-function say(text: string, kind: "prompt" | "cue" | "rep"): void {
+function say(text: string, kind: "prompt" | "cue"): void {
   speaker.speak(text, kind);
   status.said.push(text);
-  if (kind !== "rep") {
-    lastSaid = text;
-    saidEl.textContent = text;
-  }
+  lastSaid = text;
+  saidEl.textContent = text;
 }
 
 function loadModel(variant: string, forceCpu = false): Promise<void> {
@@ -103,7 +106,6 @@ function resetSession(): void {
   lastOutput = null;
   lastVideoTime = -1;
   saidEl.textContent = "";
-  repsEl.textContent = "0";
 }
 
 function stopSource(): void {
@@ -133,6 +135,7 @@ async function start(): Promise<void> {
   // Speaking inside the click handler is what unlocks speech for the rest of the session.
   say(config.phrases.start, "prompt");
   startButton.disabled = true;
+  restartButton.disabled = true;
   running = false;
   status.error = "";
   showState("calibrating", "Starting", "Loading the pose model and the camera");
@@ -142,19 +145,22 @@ async function start(): Promise<void> {
   } catch (error) {
     if (!status.error) showError("Could not start", error);
     startButton.disabled = false;
+    restartButton.disabled = false;
     return;
   }
   resetSession();
   running = true;
   recalibrateButton.disabled = false;
-  startButton.textContent = "Restart";
+  intro.hidden = true;
+  restartButton.hidden = false;
   startButton.disabled = false;
+  restartButton.disabled = false;
 }
 
 function handleEvents(events: CoachEvent[]): void {
   for (const event of events) {
     if (event.type === "speak") say(event.text, event.kind);
-    eventLog.push(`${(event.t / 1000).toFixed(2)}s ${event.type}${"id" in event ? ` ${event.id}` : ""}${event.type === "repEnd" ? (event.clean ? " clean" : " faulty") : ""}`);
+    eventLog.push(`${(event.t / 1000).toFixed(2)}s ${event.type}${"id" in event ? ` ${event.id}` : ""}${event.type === "repEnd" ? (event.clean ? " clean" : " cued") : ""}`);
   }
   if (eventLog.length > 12) eventLog.splice(0, eventLog.length - 12);
 }
@@ -170,9 +176,8 @@ function render(frame: PoseFrame, output: FrameOutput): void {
         : output.detail;
   showState(output.state, STATE_LABEL[output.state], detail);
   drawGauge(gauge, m ? m.abduction : null, config);
-  angleEl.textContent = m ? `${Math.round(m.abduction)}°` : "–";
+  angleEl.textContent = m ? `${Math.round(m.abduction)}°` : "";
   angleEl.classList.toggle("over", m !== null && m.abduction > config.abduction.limitDeg + config.abduction.toleranceDeg);
-  repsEl.textContent = String(output.cleanReps);
 }
 
 const fmt = (v: number | undefined | null, digits = 1): string => (v === undefined || v === null ? "–" : v.toFixed(digits));
@@ -196,11 +201,11 @@ function renderDebug(): void {
     ["baseline flexion (°)", fmt(cal?.flexion)],
     ["baseline pelvis roll (°)", fmt(cal?.pelvisRoll)],
     ["rep phase", o?.repPhase ?? "–"],
-    ["reps clean / total", o ? `${o.cleanReps} / ${o.totalReps}` : "–"],
     ["FPS", fmt(fps)],
     ["inference (ms)", fmt(inferenceMs)],
     ["model", `${engine.variant ?? "–"} on ${engine.delegate ?? "–"}`],
     ["frame", lastFrame ? `${lastFrame.width}×${lastFrame.height}` : "–"],
+    ["voice", speaker.voice()?.name ?? "–"],
     ["last said", lastSaid || "–"],
   ];
   debugValues.innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
@@ -258,15 +263,34 @@ function loop(now: number): void {
 }
 
 startButton.addEventListener("click", () => void start());
+restartButton.addEventListener("click", () => void start());
 
 recalibrateButton.addEventListener("click", () => {
   session.recalibrate();
   say(config.phrases.start, "prompt");
 });
 
-debugToggle.addEventListener("change", () => {
-  debugPanel.hidden = !debugToggle.checked;
+function toggleSettings(open: boolean): void {
+  debugPanel.hidden = !open;
+  settingsToggle.setAttribute("aria-expanded", String(open));
+}
+settingsToggle.addEventListener("click", () => toggleSettings(Boolean(debugPanel.hidden)));
+settingsClose.addEventListener("click", () => toggleSettings(false));
+
+speaker.onVoicesChanged(() => {
+  const chosen = voiceSelect.value || (speaker.chosenName ?? AUTO_VOICE);
+  const voices = speaker.voices();
+  voiceSelect.replaceChildren(
+    new Option(voices.length ? "Automatic" : "No voices available", AUTO_VOICE),
+    ...voices.map((v) => new Option(`${v.name}${v.localService ? "" : " (online)"}`, v.name)),
+  );
+  voiceSelect.value = voices.some((v) => v.name === chosen) ? chosen : AUTO_VOICE;
 });
+voiceSelect.addEventListener("change", () => {
+  speaker.chooseVoice(voiceSelect.value || null);
+  say(config.phrases.ready, "prompt");
+});
+voiceTest.addEventListener("click", () => say(config.phrases.ready, "prompt"));
 
 for (const variant of config.model.variants) variantSelect.add(new Option(variant, variant, false, variant === config.model.defaultVariant));
 variantSelect.addEventListener("change", () => {
@@ -293,13 +317,13 @@ fileInput.addEventListener("change", () => {
 video.addEventListener("ended", () => {
   running = false;
   clearOverlay(overlay);
-  showState("idle", "Clip ended", "Press Restart to replay it.");
+  showState("idle", "Clip ended", "Restart to replay it.");
 });
 
 recordButton.addEventListener("click", () => {
   if (recorder.recording) {
     recorder.stop();
-    recordButton.textContent = "Record trace";
+    recordButton.textContent = "Record";
     downloadButton.disabled = recorder.frameCount === 0;
   } else {
     recorder.start({
@@ -309,7 +333,7 @@ recordButton.addEventListener("click", () => {
       source: sourceSelect.value,
       userAgent: navigator.userAgent,
     });
-    recordButton.textContent = "Stop recording";
+    recordButton.textContent = "Stop";
     downloadButton.disabled = true;
   }
 });

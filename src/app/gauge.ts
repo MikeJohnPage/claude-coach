@@ -1,56 +1,48 @@
 import type { CoachConfig } from "../pipeline/config";
 
-const MIN_DEG = -10;
-const MAX_DEG = 50;
+const MIN_DEG = 0;
+const MAX_DEG = 45;
+// The ring is open at the bottom: it runs clockwise from lower left to lower right.
+const START = 0.75 * Math.PI;
+const SWEEP = 1.5 * Math.PI;
 
-/**
- * Draws abduction as a leg swinging up from horizontal around a hip at the left,
- * with the limit drawn as a fixed line. `abduction` is null when nothing is measured.
- */
+const TRACK = "rgba(255, 255, 255, 0.08)";
+const VALUE = "#8fd3c4";
+const OVER = "#f2a391";
+const MARK = "rgba(255, 255, 255, 0.7)";
+
+/** Draws abduction as a thin ring with a tick at the limit. `abduction` is null when nothing is measured. */
 export function drawGauge(canvas: HTMLCanvasElement, abduction: number | null, config: CoachConfig): void {
   const ctx = canvas.getContext("2d")!;
-  const { width: w, height: h } = canvas;
-  ctx.clearRect(0, 0, w, h);
+  const size = canvas.width;
+  ctx.clearRect(0, 0, size, size);
   const { limitDeg, toleranceDeg } = config.abduction;
-  const pivot = { x: w * 0.06, y: h * 0.8 };
-  const radius = Math.min(w * 0.88, (h * 0.72) / Math.sin((MAX_DEG * Math.PI) / 180));
-  const at = (deg: number, r: number): { x: number; y: number } => ({
-    x: pivot.x + r * Math.cos((deg * Math.PI) / 180),
-    y: pivot.y - r * Math.sin((deg * Math.PI) / 180),
-  });
-  const arc = (from: number, to: number, color: string): void => {
+  const centre = size / 2;
+  const radius = size * 0.43;
+  const angleOf = (deg: number): number =>
+    START + (SWEEP * (Math.min(MAX_DEG, Math.max(MIN_DEG, deg)) - MIN_DEG)) / (MAX_DEG - MIN_DEG);
+  const arc = (to: number, color: string): void => {
     ctx.strokeStyle = color;
-    ctx.lineWidth = h * 0.06;
     ctx.beginPath();
-    ctx.arc(pivot.x, pivot.y, radius, (-to * Math.PI) / 180, (-from * Math.PI) / 180);
+    ctx.arc(centre, centre, radius, START, to);
     ctx.stroke();
   };
-  ctx.lineCap = "butt";
-  arc(MIN_DEG, limitDeg, "#2a9d8f");
-  arc(limitDeg, MAX_DEG, "#e63946");
-
-  // The limit mark.
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = h * 0.02;
-  ctx.beginPath();
-  ctx.moveTo(at(limitDeg, radius * 0.86).x, at(limitDeg, radius * 0.86).y);
-  ctx.lineTo(at(limitDeg, radius * 1.06).x, at(limitDeg, radius * 1.06).y);
-  ctx.stroke();
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `bold ${h * 0.12}px system-ui, sans-serif`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  const label = at(limitDeg, radius * 0.8);
-  ctx.fillText(`${limitDeg}°`, label.x, label.y);
-
-  if (abduction === null) return;
-  const clamped = Math.min(MAX_DEG, Math.max(MIN_DEG, abduction));
-  const tip = at(clamped, radius * 0.97);
-  ctx.strokeStyle = abduction > limitDeg + toleranceDeg ? "#ff6b6b" : "#ffd166";
-  ctx.lineWidth = h * 0.05;
   ctx.lineCap = "round";
+  ctx.lineWidth = size * 0.022;
+  arc(START + SWEEP, TRACK);
+  if (abduction !== null && abduction > MIN_DEG) arc(angleOf(abduction), abduction > limitDeg + toleranceDeg ? OVER : VALUE);
+
+  const a = angleOf(limitDeg);
+  const at = (r: number): [number, number] => [centre + r * Math.cos(a), centre + r * Math.sin(a)];
+  ctx.strokeStyle = MARK;
+  ctx.lineWidth = size * 0.008;
   ctx.beginPath();
-  ctx.moveTo(pivot.x, pivot.y);
-  ctx.lineTo(tip.x, tip.y);
+  ctx.moveTo(...at(radius - size * 0.035));
+  ctx.lineTo(...at(radius + size * 0.035));
   ctx.stroke();
+  ctx.fillStyle = MARK;
+  ctx.font = `500 ${size * 0.045}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${limitDeg}°`, ...at(radius - size * 0.09));
 }

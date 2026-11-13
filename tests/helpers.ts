@@ -38,4 +38,6 @@ export function run(frames: PoseFrame[], config = defaultConfig): { outputs: Fra
 }
 
 export const spoken = (events: CoachEvent[]): string[] => events.flatMap((e) => (e.type === "speak" ? [e.text] : []));
+/** The `clean` flag of each finished rep, in order. */
+export const reps = (events: CoachEvent[]): boolean[] => events.flatMap((e) => (e.type === "repEnd" ? [e.clean] : []));
 export const cueIds = (events: CoachEvent[]): string[] => events.flatMap((e) => (e.type === "cue" ? [e.id] : []));

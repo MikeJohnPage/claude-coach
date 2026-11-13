@@ -64,11 +64,11 @@ export interface Calibration {
 export type SessionState = "calibrating" | "active" | "lost";
 
 export type CoachEvent =
-  | { type: "speak"; t: number; kind: "prompt" | "cue" | "rep"; id: string; text: string }
+  | { type: "speak"; t: number; kind: "prompt" | "cue"; id: string; text: string }
   | { type: "calibrated"; t: number; calibration: Calibration }
   | { type: "lost"; t: number }
   | { type: "repStart"; t: number }
-  | { type: "repEnd"; t: number; clean: boolean; cleanCount: number; totalCount: number }
+  | { type: "repEnd"; t: number; clean: boolean }
   | { type: "cue"; t: number; id: string; value: number };
 
 export interface FrameOutput {
@@ -83,7 +83,5 @@ export interface FrameOutput {
   topSide: Side | null;
   measurements: Measurements | null;
   repPhase: "rest" | "up";
-  cleanReps: number;
-  totalReps: number;
   events: CoachEvent[];
 }

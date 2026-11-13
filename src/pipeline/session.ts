@@ -23,8 +23,6 @@ export class CoachSession {
   private lastVisibleT: number | null = null;
   private torsoRef: { hip: Vec2; shoulder: Vec2; len: number } | null = null;
   private repHadCue = false;
-  private cleanReps = 0;
-  private totalReps = 0;
 
   constructor(private readonly config: CoachConfig) {
     this.calibrator = new Calibrator(config);
@@ -36,7 +34,7 @@ export class CoachSession {
     >;
   }
 
-  /** Drops the calibration and waits for the next still period. The rep count is kept. */
+  /** Drops the calibration and waits for the next still period. */
   recalibrate(): void {
     this.state = "calibrating";
     this.dropCalibration();
@@ -100,8 +98,6 @@ export class CoachSession {
       topSide: this.calibration?.topSide ?? null,
       measurements,
       repPhase: this.reps.phase,
-      cleanReps: this.cleanReps,
-      totalReps: this.totalReps,
       events,
     };
   }
@@ -155,11 +151,8 @@ export class CoachSession {
 
     if (transition === "end") {
       this.cues.endRep();
-      this.totalReps += 1;
-      const clean = !this.repHadCue;
-      if (clean) this.cleanReps += 1;
-      events.push({ type: "repEnd", t, clean, cleanCount: this.cleanReps, totalCount: this.totalReps });
-      if (clean) events.push({ type: "speak", t, kind: "rep", id: "rep", text: String(this.cleanReps) });
+      // Reps are detected to scope the cues, but they are not counted or announced.
+      events.push({ type: "repEnd", t, clean: !this.repHadCue });
     }
     return m;
   }

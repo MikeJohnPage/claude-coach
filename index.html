@@ -3,63 +3,83 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
     <title>Hip abduction coach</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body>
+  <body data-state="idle">
     <header>
-      <h1>Side-lying hip abduction coach</h1>
-      <button id="start" class="primary">Start</button>
-      <button id="recalibrate" disabled>Recalibrate</button>
-      <label class="toggle"><input id="debug-toggle" type="checkbox" /> Debug</label>
+      <span class="brand">Hip abduction coach</span>
+      <nav>
+        <button id="restart" class="ghost" hidden>Restart</button>
+        <button id="recalibrate" class="ghost" disabled>Recalibrate</button>
+        <button id="settings-toggle" class="ghost" aria-expanded="false" aria-controls="settings">Settings</button>
+      </nav>
     </header>
 
     <main>
-      <div class="stage">
+      <section class="stage">
         <video id="video" playsinline muted></video>
         <canvas id="overlay"></canvas>
-      </div>
-      <aside class="readout">
-        <div id="state" class="state idle">Press Start</div>
-        <div id="detail" class="detail">Laptop on the floor, 2 to 2.5 m away, level with your hips.</div>
-        <div class="numbers">
-          <div id="angle" class="angle">–</div>
-          <div class="reps"><span id="reps">0</span><small>reps</small></div>
+        <div id="intro" class="intro">
+          <p>Laptop on the floor, 2 to 2.5 m away, level with your hips.<br />Lie on your side facing the camera.</p>
+          <button id="start" class="primary">Start</button>
         </div>
-        <canvas id="gauge" class="gauge" width="640" height="400"></canvas>
-        <div id="said" class="said"></div>
-      </aside>
+      </section>
+
+      <section class="readout" aria-live="polite">
+        <div class="status"><span class="dot"></span><span id="state">Ready</span></div>
+        <div class="gauge">
+          <canvas id="gauge" width="800" height="800"></canvas>
+          <div class="angle"><span id="angle"></span><small>abduction</small></div>
+        </div>
+        <p id="detail" class="detail"></p>
+        <p id="said" class="said"></p>
+      </section>
     </main>
 
-    <section id="debug" hidden>
-      <div class="controls">
-        <label>Model
-          <select id="variant"></select>
-        </label>
-        <label>Source
-          <select id="source">
-            <option value="webcam">Webcam</option>
-            <option value="file">Video file</option>
-          </select>
-        </label>
-        <input id="file" type="file" accept="video/*" hidden />
-        <label>Rotate input
-          <select id="rotation">
-            <option value="0">Off</option>
-            <option value="90">90° clockwise (head at image-left)</option>
-            <option value="-90">90° counter-clockwise (head at image-right)</option>
-          </select>
-        </label>
-        <button id="record">Record trace</button>
-        <button id="download" disabled>Download trace</button>
-        <span id="record-status"></span>
+    <aside id="settings" class="drawer" hidden>
+      <div class="drawer-head">
+        <h2>Settings</h2>
+        <button id="settings-close" class="ghost" aria-label="Close settings">Close</button>
       </div>
-      <div class="tables">
-        <table id="debug-values"></table>
-        <table id="debug-visibility"></table>
-        <pre id="debug-events"></pre>
+
+      <h3>Voice</h3>
+      <div class="row">
+        <select id="voice" aria-label="Voice"></select>
+        <button id="voice-test" class="ghost">Test</button>
       </div>
-    </section>
+      <p class="hint">Voices come from your browser and operating system. Ones marked online send the spoken phrases to their provider.</p>
+
+      <h3>Input</h3>
+      <label class="field">Model <select id="variant"></select></label>
+      <label class="field">Source
+        <select id="source">
+          <option value="webcam">Webcam</option>
+          <option value="file">Video file</option>
+        </select>
+      </label>
+      <input id="file" type="file" accept="video/*" hidden />
+      <label class="field">Rotate input
+        <select id="rotation">
+          <option value="0">Off</option>
+          <option value="90">90° clockwise (head at left)</option>
+          <option value="-90">90° counter-clockwise (head at right)</option>
+        </select>
+      </label>
+
+      <h3>Trace</h3>
+      <div class="row">
+        <button id="record" class="ghost">Record</button>
+        <button id="download" class="ghost" disabled>Download</button>
+        <span id="record-status" class="hint"></span>
+      </div>
+
+      <h3>Live values</h3>
+      <table id="debug-values"></table>
+      <table id="debug-visibility"></table>
+      <pre id="debug-events"></pre>
+    </aside>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

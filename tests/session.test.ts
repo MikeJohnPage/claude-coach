@@ -4,7 +4,7 @@ import { buildFigure, buildSequence } from "../src/pipeline/synthetic";
 import { CueEngine } from "../src/pipeline/cues";
 import { RepDetector } from "../src/pipeline/reps";
 import type { Side } from "../src/pipeline/types";
-import { CALIBRATION_MS, cueIds, hold, lift, REST, run, sequence, spoken } from "./helpers";
+import { CALIBRATION_MS, cueIds, hold, lift, REST, reps, run, sequence, spoken } from "./helpers";
 
 const { phrases } = defaultConfig;
 const text = (id: string): string => defaultConfig.cues.find((c) => c.id === id)!.text;
@@ -23,27 +23,27 @@ describe.each(sides)("session with the %s side up", (top) => {
     expect(outputs.at(-1)!.measurements!.abduction).toBeCloseTo(REST, 1);
   });
 
-  it("speaks the number of each clean rep", () => {
+  it("detects each rep without announcing it", () => {
     const frames = sequence(top, 10000, (t) => ({
       abduction: Math.max(lift(t, 500, 2500, 25), lift(t, 3500, 2500, 25), lift(t, 6500, 2500, 25)),
     }));
-    const { outputs, events } = run(frames);
-    expect(spoken(events)).toEqual([phrases.ready, "1", "2", "3"]);
+    const { events } = run(frames);
+    expect(spoken(events)).toEqual([phrases.ready]);
     expect(cueIds(events)).toEqual([]);
-    expect(outputs.at(-1)!.cleanReps).toBe(3);
+    expect(reps(events)).toEqual([true, true, true]);
   });
 
-  it("cues a rep that goes too high and gives it no number", () => {
+  it("cues a rep that goes too high and marks it faulty", () => {
     const frames = sequence(top, 7000, (t) => ({ abduction: Math.max(lift(t, 500, 2500, 42), lift(t, 3500, 2500, 25)) }));
-    const { outputs, events } = run(frames);
-    expect(spoken(events)).toEqual([phrases.ready, text("tooHigh"), "1"]);
-    expect(outputs.at(-1)!.cleanReps).toBe(1);
-    expect(outputs.at(-1)!.totalReps).toBe(2);
+    const { events } = run(frames);
+    expect(spoken(events)).toEqual([phrases.ready, text("tooHigh")]);
+    expect(reps(events)).toEqual([false, true]);
   });
 
   it("does not cue at exactly the 30° limit", () => {
     const { events } = run(sequence(top, 4000, (t) => ({ abduction: hold(t, 500, 2000, 30) })));
-    expect(spoken(events)).toEqual([phrases.ready, "1"]);
+    expect(spoken(events)).toEqual([phrases.ready]);
+    expect(reps(events)).toEqual([true]);
   });
 
   it("cues pelvis roll, forward flexion and torso movement", () => {
@@ -67,7 +67,9 @@ describe.each(sides)("session with the %s side up", (top) => {
       abduction: hold(t, 500, 2000, 22),
       ...(t > 1200 && t < 2800 ? { flexionOut: -20, pelvisRoll: -20 } : {}),
     }));
-    expect(spoken(run(frames).events)).toEqual([phrases.ready, "1"]);
+    const { events } = run(frames);
+    expect(spoken(events)).toEqual([phrases.ready]);
+    expect(reps(events)).toEqual([true]);
   });
 
   it("subtracts the calibration baselines", () => {
@@ -79,7 +81,8 @@ describe.each(sides)("session with the %s side up", (top) => {
       flexionOut: 10,
     }));
     const { outputs, events } = run(frames);
-    expect(spoken(events)).toEqual([phrases.ready, "1"]);
+    expect(spoken(events)).toEqual([phrases.ready]);
+    expect(reps(events)).toEqual([true]);
     const m = outputs.at(-1)!.measurements!;
     expect(Math.abs(m.pelvisRoll)).toBeLessThan(1);
     expect(Math.abs(m.flexDrift)).toBeLessThan(1);
@@ -113,7 +116,8 @@ describe.each(sides)("session with the %s side up", (top) => {
       hidden: t > 1500 && t < 2500 ? [knee] : [],
     }));
     const { outputs, events } = run(frames);
-    expect(spoken(events)).toEqual([phrases.ready, "1"]);
+    expect(spoken(events)).toEqual([phrases.ready]);
+    expect(reps(events)).toEqual([true]);
     expect(outputs.some((o) => !o.visible && o.measurements === null && o.state === "active")).toBe(true);
   });
 });
